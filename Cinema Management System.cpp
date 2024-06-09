@@ -208,7 +208,7 @@ public:
             for (int seat : booking.seatNumbers) {
                 cout << seat << " ";
             }
-            cout << "\n\n";
+            //cout << "\n\n";
             cout << "Quantity: " << booking.ticketQuantity << "\n";
             cout << "Purchase Time: " << booking.purchaseTime << "\n";
             cout << "Payment Method: " << booking.paymentMethod << "\n\n";
@@ -371,6 +371,116 @@ public:
     printTicket(newBooking);
 }
 
+void cancelBooking() {
+    if (loggedInUser == nullptr) {
+        cout << "You need to log in to cancel a booking.\n";
+        return;
+    }
+
+    int bookingID;
+    cout << "Enter booking ID to cancel: ";
+    cin >> bookingID;
+
+    auto bookingIterator = std::find_if(bookings.begin(), bookings.end(), [&](const Booking& booking) {
+        return booking.bookingID == bookingID;
+    });
+
+    if (bookingIterator != bookings.end()) {
+        Booking& bookingToRemove = *bookingIterator;
+
+        auto userBookingIterator = std::find_if(loggedInUser->userBookings.begin(), loggedInUser->userBookings.end(), [&](const Booking& userBooking) {
+            return userBooking.bookingID == bookingID;
+        });
+
+        if (userBookingIterator != loggedInUser->userBookings.end()) {
+            loggedInUser->userBookings.erase(userBookingIterator);
+        }
+
+        bookings.erase(bookingIterator);
+
+        unordered_set<int>& theaterBookedSeats = bookedSeats[bookingToRemove.theater][bookingToRemove.schedule];
+        for (int seat : bookingToRemove.seatNumbers) {
+            theaterBookedSeats.erase(seat);
+        }
+
+        cout << "Booking with ID " << bookingID << " has been successfully canceled.\n";
+    } else {
+        cout << "Booking with ID " << bookingID << " not found.\n";
+    }
+}
+
+void updateBooking() {
+    if (loggedInUser == nullptr) {
+        cout << "You need to log in to update a booking.\n";
+        return;
+    }
+
+    int bookingID;
+    cout << "Enter booking ID to update: ";
+    cin >> bookingID;
+
+    auto bookingIterator = std::find_if(bookings.begin(), bookings.end(), [&](const Booking& booking) {
+        return booking.bookingID == bookingID;
+    });
+
+    if (bookingIterator != bookings.end()) {
+        Booking& bookingToUpdate = *bookingIterator;
+
+        cout << "What would you like to update?\n";
+        cout << "1. Movie\n";
+        cout << "2. Theater\n";
+        cout << "3. Schedule\n";
+        cout << "Enter your choice: ";
+        int choice;
+        cin >> choice;
+
+        switch (choice) {
+            case 1: {
+                displayNowPlayingMovies();
+                int movieChoice;
+                cout << "Enter the number of the movie you want to update to: ";
+                cin >> movieChoice;
+
+                if (movieChoice < 1 || movieChoice > playingNow.size()) {
+                    cout << "Invalid movie choice.\n";
+                    return;
+                }
+
+                Movie& selectedMovie = playingNow[movieChoice - 1];
+                bookingToUpdate.movieTitle = selectedMovie.getTitle();
+                break;
+            }
+            case 2: {
+                displayTheaters(theaters);
+                int theaterChoice;
+                cout << "Enter the number of the theater you want to update to: ";
+                cin >> theaterChoice;
+
+                if (theaterChoice < 1 || theaterChoice > theaters.size()) {
+                    cout << "Invalid theater choice.\n";
+                    return;
+                }
+
+                Theater& selectedTheater = theaters[theaterChoice - 1];
+                bookingToUpdate.theater = selectedTheater.name;
+                break;
+            }
+            case 3: {
+                cout << "Enter the new schedule: ";
+                cin >> bookingToUpdate.schedule;
+                break;
+            }
+            default:
+                cout << "Invalid choice.\n";
+                return;
+        }
+
+        cout << "Booking with ID " << bookingID << " has been successfully updated.\n";
+    } else {
+        cout << "Booking with ID " << bookingID << " not found.\n";
+    }
+}
+
 
 
     void run() {
@@ -408,8 +518,10 @@ public:
                 cout << "3. Book Ticket\n";
                 cout << "4. View Booking History\n";
                 cout << "5. View Ticket\n";
-                cout << "6. Logout\n";
-                cout << "7. Exit\n";
+                cout << "6. Cancel Booking\n";
+                cout << "7. Update Booking\n";
+                cout << "8. Logout\n";
+                cout << "9. Exit\n";
                 cout << "Enter your choice: ";
                 cin >> choice;
 
@@ -430,16 +542,22 @@ public:
                         viewTicket();
                         break;
                     case 6:
-                        logout();
+                        cancelBooking();
                         break;
                     case 7:
+                        updateBooking();
+                        break;
+                    case 8:
+                        logout();
+                        break;
+                    case 9:
                         cout << "Thank you for using Cinema System. Goodbye!\n";
                         break;
                     default:
                         cout << "Invalid choice. Please enter a number between 1 and 7.\n";
                 }
             }
-        } while (choice != 7);
+        } while (choice != 9);
     }
 };
 
@@ -476,4 +594,3 @@ int main() {
 
     return 0;
 }
-
